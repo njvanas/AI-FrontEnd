@@ -1,0 +1,40 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Build the React app
+      - name: Build the app
+        run: npm run build
+
+      # Step 5: Deploy to the server
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "rm -rf ~/my-web-stack/frontend/build"
+          scp -r ./build $REMOTE_USER@$REMOTE_HOST:~/my-web-stack/frontend/
+          ssh $REMOTE_USER@$REMOTE_HOST "sudo systemctl restart nginx"
